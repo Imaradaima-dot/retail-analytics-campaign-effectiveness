@@ -571,16 +571,69 @@ New         ███          7.0%
 
 
 ## Skills Demonstrated
-- Exploratory data analysis
-- Retail analytics
-- Customer 360 design
-- PostgreSQL and SQL analytics
-- MongoDB document modeling
-- External data enrichment
-- Campaign effectiveness analysis
-- Predictive modeling workflow
-- Python scripting
-- Docker-based development
+### Database Engineering
+- Relational database design — star schema with fact/dimension tables, surrogate keys, and referential integrity
+- PostgreSQL DDL — multi-script initialisation, schema versioning, and reproducible database setup via Docker
+- MongoDB document modelling — schema design for a Customer 360 document store with nested subdocuments, arrays, and embedded metrics
+- MongoDB index design — compound indexes, 2dsphere geospatial index, and query performance optimisation
+- SQL querying — window functions (`NTILE`, `RANK`, `PERCENTILE_CONT`), CTEs, lateral joins, and aggregation pipelines
+- MongoDB aggregation pipelines — `$group`, `$match`, `$project`, `$sort`, `$lookup` for real-time analytics
+- Cross-database analytics — joining MongoDB aggregation outputs with PostgreSQL SQL results via in-memory pandas merges
+
+### Data Engineering & ETL
+- Python ETL pipeline development — end-to-end ingest scripts for both PostgreSQL and MongoDB
+- External API integration — FRED (Federal Reserve Economic Data) for macroeconomic CPI/PPD series
+- Weather data ingestion — Open-Meteo API for daily temperature, precipitation, and extreme weather flags
+- Feature engineering — 90-day rolling weather windows, inter-purchase intervals, RFM quintile scoring, coupon redemption rates
+- Data quality handling — panel ramp-up artefact identification, truncation detection, leakage-prone variable removal
+- Docker Compose orchestration — multi-service containerised environment for reproducible local deployment
+
+### Analytics & Business Intelligence
+- Exploratory data analysis — spending trend decomposition, demographic signal ranking, category concentration analysis
+- RFM segmentation — Recency / Frequency / Monetary quintile scoring with named segment classification
+- Customer lifetime value (CLV) segmentation — spend-tier analysis using SQL `NTILE` and K-Means clustering
+- Year-on-year comparative analysis — steady-state windowing, artefact exclusion, like-for-like comparisons
+- Campaign selection bias identification — exposure rate analysis across spend quintiles
+- Revenue concentration analysis — cumulative share (Pareto-style) across product departments
+
+### Causal Inference & Statistical Modelling
+- Difference-in-Differences (DiD) — SQL-based causal campaign lift estimation with 28-day pre-campaign baseline
+- OLS regression — campaign uplift modelling with macroeconomic and weather controls (statsmodels)
+- Trade-down analysis — commodity price-tier classification, budget-share trend regression, heterogeneous treatment effects by demographic group
+- Hypothesis testing — p-value interpretation, statistical significance assessment, distinguishing structural from cyclical effects
+
+### Machine Learning
+- Binary classification — XGBoost churn prediction with class imbalance handling
+- Model evaluation — ROC-AUC and PR-AUC metrics, with emphasis on PR-AUC for imbalanced minority-class problems
+- Feature leakage detection and removal — identifying and excluding target-proximate variables before model training
+- Hyperparameter tuning — XGBoost model iteration across feature sets
+- Unsupervised learning — K-Means clustering with elbow method and silhouette score for optimal k selection
+- Model scoring service — reusable Python scoring pipeline writing outputs to both PostgreSQL and MongoDB
+
+### Explainability & Model Interpretability
+- SHAP (SHapley Additive exPlanations) — feature attribution for XGBoost churn model
+- Exogenous feature discovery — identifying weather-driven routine disruption as the dominant churn signal over internal transaction behaviour
+- Comparative model analysis — quantifying the marginal lift of external enrichment features (PR-AUC +292%)
+
+### External Data Enrichment
+- Macroeconomic enrichment — FRED CPI series integration, PPD (Purchasing Power Decay) index construction, weekly join to transaction data
+- Weather enrichment — daily temperature and precipitation data anchored to a specific retail market (Allen, TX), aggregated to household-level 90-day windows
+- Temporal data alignment — anchoring a relative-day dataset to a real-world calendar for external join compatibility
+
+### Software Engineering Practices
+- Modular code organisation — separation of ingest, serving, and notebook layers
+- Reproducibility — terminal-executed SQL initialisation scripts over notebook-based setup to avoid long-running execution issues
+- Environment management — Docker Compose for consistent, portable multi-service environments
+- Version-controlled notebook structure — sequentially numbered notebooks with clear input/output dependencies
+### Overcoming Real-World Data Challenges
+- Handling panel recruitment artefacts — identifying and excluding a 16-week ramp-up period from a real retail loyalty panel before any trend analysis
+- Partial-period detection — flagging and excluding a truncated observation week to prevent distorted aggregations
+- Dual population denominators — managing two valid household counts (n=801 transacting households vs n=924 total including campaign-only records) and applying the correct denominator per analysis context
+- Sparse demographic coverage — working with classification variables that are present for some households but not others, without imputing or distorting segment distributions
+- Campaign assignment imbalance — correcting a 14× exposure gap between spend quintiles identified in Phase 1, tracing it to a denominator error, and producing the accurate 1.2× ratio from properly deduplicated source tables
+- Relative-date datasets — anchoring a day-integer time series (Day 1–711) to a real-world calendar to enable external data joins while disclosing the methodological assumptions this requires
+- External data fallback patterns — designing pipelines that degrade gracefully when a live API key (FRED) is unavailable, falling back to pre-computed stored values without breaking downstream analysis
+- Retail data skew — working with a highly imbalanced churn target (38 at-risk vs 763 active households) and selecting evaluation metrics (PR-AUC over ROC-AUC) appropriate for rare-event detection in real operational data
 ## Acknowledgements
 
 - Dataset: [Dunnhumby — The Complete Journey](https://www.dunnhumby.com/source-files)
