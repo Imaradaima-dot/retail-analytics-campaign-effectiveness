@@ -1,0 +1,180 @@
+# =============================================================================
+# Retail Customer Behavior for Growth — Phase 2
+# Polyglot Persistence Stack: Docker Compose Orchestration
+#
+# Architecture:
+#   PostgreSQL   — Snowflake schema, ACID transactions, ETL hub
+#   MongoDB      — Customer 360 denormalised documents, real-time personalization  
+#
+# Startup sequence (enforced via health checks + depends_on):
+#   1. postgres_ingest runs once all four databases are healthy
+#   2 mongo_ingest run 
+#      after postgres_ingest completes
+# =============================================================================
+
+name: retail_analytics
+
+# =============================================================================
+# NETWORK
+# Custom bridge network — containers communicate via internal DNS (service name).
+# Specific ports are selectively exposed to the host for local dev tooling only.
+# =============================================================================
+networks:
+  retail_network:
+    driver: bridge
+    name: retail_network
+
+# =============================================================================
+# VOLUMES
+# Named volumes ensure data persists across container restarts and rebuilds.
+# =============================================================================
+volumes:
+  # PostgreSQL
+  postgres_data:
+  # MongoDB
+  mongo_data:
+  mongo_config:
+  
+
+
+services:
+
+  # ===========================================================================
+  # DATABASE 1 — PostgreSQL
+  # Role: Snowflake schema staging hub. All downstream systems pull from here.
+  # Provisions two logical databases on init:
+  #   retail_staging    — raw ingested CSV data
+  #   retail_analytics  — transformed Snowflake schema (fact + dimension tables)
+  # ===========================================================================
+  postgres:
+    image: postgres:16
+    container_name: retail_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"                          # Exposed for pgAdmin / local dev
+    environment:
+      POSTGRES_USER:     retail_user
+      POSTGRES_PASSWORD: retail_pass
+      POSTGRES_DB:       retail_analytics    # Default DB (analytics schema)
+      # Init script reads this variable to create both databases
+      POSTGRES_MULTIPLE_DATABASES: retail_staging,retail_analytics
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init scripts run once on first startup (alphabetical order)
+      - ./postgres/init/01-create-databases.sh:/docker-entrypoint-initdb.d/01-create-databases.sh:ro
+      - ./postgres/init/02-create-schema.sql:/docker-entrypoint-initdb.d/02-create-schema.sql:ro
+    networks:
+      - retail_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retail_user -d retail_analytics"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # ===========================================================================
+  # DATABASE 2 — MongoDB
+  # Role: Customer 360 document store. Real-time personalisation + Change Streams.
+  # Provisioned as single-node replica set (rs0) — REQUIRED for:
+  #   - Change Streams (downstream churn score sync)
+  #   - Multi-document ACID transactions
+  # ===========================================================================
+  mongo:
+    image: mongo:7.0
+    container_name: retail_mongo
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"                        # Exposed for MongoDB Compass
+    environment:
+      MONGO_INITDB_DATABASE: retail_customer360
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+      # Replica set init script — runs automatically on first container start
+      - ./mongo/init-rs.js:/docker-entrypoint-initdb.d/init-rs.js:ro
+    networks:
+      - retail_network
+    healthcheck:
+      test: >
+        mongosh --quiet --eval
+        'db.runCommand("ping").ok'
+        localhost:27017/admin
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 30s                      # Allow time for replica set election
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  
+
+  # ===========================================================================
+  # INGESTION STEP 1 — PostgreSQL ETL
+   # Reads raw Dunnhumby CSVs → cleans → loads Snowflake schema into PostgreSQL.
+  # All downstream ingestion services depend on this completing successfully.
+  # ===========================================================================
+  postgres_ingest:
+    build:
+      context:    ./ingestion
+      dockerfile: Dockerfile.postgres
+    container_name: retail_postgres_ingest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      
+    environment:
+      PG_HOST:     postgres
+      PG_PORT:     "5432"
+      PG_DB:       retail_analytics
+      PG_USER:     retail_user
+      PG_PASSWORD: retail_pass
+      # Path to mounted raw CSVs inside the container
+      DATA_DIR:    /data/raw
+    volumes:
+      # Mount the raw Dunnhumby CSV files (read-only)
+      - ./data/raw:/data/raw:ro
+    networks:
+      - retail_network
+    restart: "no"                            # One-shot: exits after completion
+
+  # ===========================================================================
+  # INGESTION STEP 2a — MongoDB Customer 360
+  # Runs after postgres_ingest completes.
+  # Queries PostgreSQL Snowflake schema → builds BSON documents → loads MongoDB.
+  # Implements Subset Pattern (10 most recent transactions per household).
+  # ===========================================================================
+  mongo_ingest:
+    build:
+      context:    ./ingestion
+      dockerfile: Dockerfile.mongo
+    container_name: retail_mongo_ingest
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres_ingest:
+        condition: service_completed_successfully
+    environment:
+      PG_HOST:     postgres
+      PG_PORT:     "5432"
+      PG_DB:       retail_analytics
+      PG_USER:     retail_user
+      PG_PASSWORD: retail_pass
+      MONGO_URI:   mongodb://mongo:27017/?replicaSet=rs0
+      MONGO_DB:    retail_customer360
+    networks:
+      - retail_network
+    restart: "no"
+
+  
+
+  
+   
