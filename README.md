@@ -1,6 +1,6 @@
-# Retail Analytics Platform — Customer 360 & Campaign Intelligence
+# Real World Data: Retail Analytics Platform — Customer 360 & Campaign Intelligence
 
-> End-to-end retail analytics platform built on a polyglot persistence architecture.  
+> End-to-end retail analytics platform built on a dual-database persistence architecture.  
 > Transforms raw transaction data into a Customer 360 intelligence layer with RFM segmentation, campaign attribution, churn prediction, and CLV modelling — enriched with macroeconomic and weather signals.
 
 ---
@@ -27,7 +27,7 @@
 
 ## Overview
 
-This project is a full-stack retail analytics case study built on the [Dunnhumby — The Complete Journey](https://www.dunnhumby.com/source-files) dataset. It demonstrates how raw retail transaction data can be transformed into a production-grade Customer 360 analytics foundation using a **dual-database persistence** strategy — combining a PostgreSQL star schema with a MongoDB Customer 360 document store — enriched with real-world macroeconomic and weather data.
+This project is a full-stack retail analytics case study built on the [Dunnhumby — The Complete Journey](https://www.dunnhumby.com/source-files) dataset. It demonstrates how real world raw retail transaction data can be transformed into a production-grade Customer 360 analytics foundation using a **dual-database persistence** strategy — combining a PostgreSQL star schema with a MongoDB Customer 360 document store — enriched with real-world macroeconomic and weather data.
 
 The platform answers five core business questions through direct database queries (no ML required for analytics), while also providing an optional modelling layer that uses XGBoost, SHAP explainability, K-Means clustering, Difference-in-Differences causal inference, and OLS regression for deeper predictive and causal analysis.
 
