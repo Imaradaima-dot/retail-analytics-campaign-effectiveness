@@ -13,7 +13,7 @@
 4. [Dataset](#dataset)
 5. [Project Phases](#project-phases)
    - [Phase 1 — Exploratory Data Analysis](#phase-1--exploratory-data-analysis)
-   - [Phase 2 — Polyglot Persistence & Database Design](#phase-2--polyglot-persistence--database-design)
+   - [Phase 2 — Dual Persistence & Database Design](#phase-2--dual-persistence--database-design)
    - [Phase 2 — External Data Enrichment](#phase-2--external-data-enrichment)
    - [Phase 2 — Modelling & SHAP Analysis](#phase-2--modelling--shap-analysis)
    - [Phase 2 — SQL & MongoDB Business Insights](#phase-2--sql--mongodb-business-insights)
